@@ -385,32 +385,32 @@ async function renderPredict(el) {
   const myPreds = {};
   predictionsCache.forEach(p => { myPreds[p.match_id] = { home: p.pred_home, away: p.pred_away }; });
   const now = new Date();
-  const allOpenM = [], closedM = [];
+  const in24h = new Date(now.getTime() + 24*3600*1000);
+  const in48h = new Date(now.getTime() + 48*3600*1000);
+  
+  // Categorize matches
+  const upcomingIn24h = [];   // Open matches within next 24h
+  const upcomingLater = [];   // Open matches after 24h
+  const mySubmittedPreds = []; // My submitted predictions (pending, not yet resulted)
+  const closedM = [];          // Finished / deadline passed
   
   matchesCache.forEach(m => {
-    if (m.home === 'TBD' || m.home.startsWith('1') || m.home.startsWith('2') || m.home.startsWith('3')) return; // Skip TBD matches
+    if (m.home === 'TBD' || m.home.startsWith('1') || m.home.startsWith('2') || m.home.startsWith('3')) return;
     const mt = new Date(m.match_date);
     const dl = new Date(mt.getTime() - 30*60000);
-    if (m.result_home != null || now >= dl) closedM.push(m);
-    else allOpenM.push(m);
+    
+    if (m.result_home != null || now >= dl) {
+      closedM.push(m);
+    } else if (mt <= in24h) {
+      upcomingIn24h.push(m);
+    } else {
+      upcomingLater.push(m);
+    }
   });
   
-  // ===== DETERMINE CURRENT ROUND =====
-  // Find the stage of the earliest open match = current round
-  let currentRoundStage = null;
-  let currentRoundName = '';
-  if (allOpenM.length > 0) {
-    // Sort by match date to find the earliest
-    allOpenM.sort((a, b) => a.match_date.localeCompare(b.match_date));
-    currentRoundStage = allOpenM[0].stage;
-    currentRoundName = getStageFullName(currentRoundStage);
-  }
-  
-  // Only show matches from the current round
-  const openM = currentRoundStage ? allOpenM.filter(m => m.stage === currentRoundStage) : [];
-  // Count remaining rounds after current
-  const remainingStages = [...new Set(allOpenM.filter(m => m.stage !== currentRoundStage).map(m => m.stage))];
-  const remainingRoundCount = remainingStages.length;
+  // My submitted predictions (for upcoming matches in 24h that already have predictions)
+  const mySubmittedIn24h = upcomingIn24h.filter(m => myPreds[m.id]);
+  const myUnsubmittedIn24h = upcomingIn24h.filter(m => !myPreds[m.id]);
   
   let html = '';
   
@@ -430,33 +430,75 @@ async function renderPredict(el) {
     <div class="breakdown">
       <div class="item"><div class="val">${predCount}</div><div class="lbl">已预言</div></div>
       <div class="item"><div class="val">${correctCount}</div><div class="lbl">猜中</div></div>
-      <div class="item"><div class="val">${allOpenM.length}</div><div class="lbl">待预言</div></div>
+      <div class="item"><div class="val">${upcomingIn24h.length + upcomingLater.length}</div><div class="lbl">待预言</div></div>
     </div>
   </div>`;
   
-  // ===== UNIFIED PREDICTION FORM (CURRENT ROUND ONLY) =====
-  if (openM.length) {
+  // ===== MY SUBMITTED PREDICTIONS =====
+  if (mySubmittedIn24h.length) {
     html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <span style="font-size:14px;font-weight:600;color:var(--accent)">🔮 ${currentRoundName}</span>
-      <span style="font-size:12px;color:var(--text-muted)">${openM.length}场可预言${remainingRoundCount > 0 ? ` · 还有${remainingRoundCount}轮` : ''}</span>
+      <span style="font-size:14px;font-weight:600;color:var(--success)">✅ 我的预言</span>
+      <span style="font-size:12px;color:var(--text-muted)">${mySubmittedIn24h.length}场已提交</span>
+    </div>`;
+    html += `<div class="card" style="padding:12px;border-color:rgba(76,175,80,.3)">`;
+    
+    mySubmittedIn24h.forEach((m, idx) => {
+      const pred = myPreds[m.id];
+      const time = m.match_date.substring(11,16);
+      const mDate = m.match_date.substring(0,10);
+      const todayStr = now.toISOString().substring(0,10);
+      const tmrStr = new Date(now.getTime() + 86400000).toISOString().substring(0,10);
+      const dateLabel = mDate === todayStr ? '今天' : mDate === tmrStr ? '明天' : '';
+      
+      html += `<div style="margin-bottom:${idx < mySubmittedIn24h.length-1 ? '10px' : '0'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--text-muted)">${dateLabel ? dateLabel+' ' : ''}${time} · ${m.group_name?m.group_name+'组':''}</span>
+          <span style="font-size:10px;background:rgba(76,175,80,.15);color:var(--success);padding:2px 6px;border-radius:8px">已提交</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+          <span style="font-size:22px">${getFlag(m.home)}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text);max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.home}</span>
+          <span style="font-size:18px;font-weight:900;color:var(--accent);min-width:24px;text-align:center">${pred.home}</span>
+          <span style="font-size:14px;color:var(--text-muted);font-weight:700">:</span>
+          <span style="font-size:18px;font-weight:900;color:var(--accent);min-width:24px;text-align:center">${pred.away}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text);max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.away}</span>
+          <span style="font-size:22px">${getFlag(m.away)}</span>
+        </div>
+      </div>`;
+    });
+    
+    html += `</div>`;
+  }
+  
+  // ===== UPCOMING 24H PREDICTION FORM =====
+  if (myUnsubmittedIn24h.length) {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin:${mySubmittedIn24h.length ? '12px' : '0'} 0 8px">
+      <span style="font-size:14px;font-weight:600;color:var(--accent)">🔮 未来24小时</span>
+      <span style="font-size:12px;color:var(--text-muted)">${myUnsubmittedIn24h.length}场待预言</span>
     </div>`;
     html += `<div class="card" style="padding:12px">`;
     
     let currentDate = '';
-    openM.forEach((m, idx) => {
+    myUnsubmittedIn24h.forEach((m, idx) => {
       const mDate = m.match_date.substring(0,10);
       if (mDate !== currentDate) {
         currentDate = mDate;
-        const dateObj = new Date(mDate + 'T00:00:00');
-        const weekDay = ['日','一','二','三','四','五','六'][dateObj.getDay()];
-        const label = `${parseInt(mDate.substring(5,7))}月${parseInt(mDate.substring(8,10))}日 周${weekDay}`;
+        const todayStr = now.toISOString().substring(0,10);
+        const tmrStr = new Date(now.getTime() + 86400000).toISOString().substring(0,10);
+        let label;
+        if (mDate === todayStr) label = '🔥 今天';
+        else if (mDate === tmrStr) label = '📅 明天';
+        else {
+          const dateObj = new Date(mDate + 'T00:00:00');
+          const weekDay = ['日','一','二','三','四','五','六'][dateObj.getDay()];
+          label = `${parseInt(mDate.substring(5,7))}月${parseInt(mDate.substring(8,10))}日 周${weekDay}`;
+        }
         if (idx > 0) html += `<div style="border-top:1px solid var(--border);margin:12px 0"></div>`;
-        html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">📅 ${label}</div>`;
+        html += `<div style="font-size:13px;color:var(--accent);margin-bottom:8px;font-weight:600">${label}</div>`;
       }
       
-      const pred = myPreds[m.id];
       const time = m.match_date.substring(11,16);
-      html += `<div style="margin-bottom:${idx < openM.length-1 ? '14px' : '0'}">
+      html += `<div style="margin-bottom:${idx < myUnsubmittedIn24h.length-1 ? '14px' : '0'}">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <span style="font-size:12px;color:var(--text-muted)">${time} · ${m.group_name?m.group_name+'组':''}</span>
           <span style="font-size:11px;background:var(--primary);color:var(--accent);padding:2px 8px;border-radius:8px">${getStageName(m.stage)}</span>
@@ -464,43 +506,45 @@ async function renderPredict(el) {
         <div class="prediction-row" style="gap:8px">
           <span style="font-size:28px">${getFlag(m.home)}</span>
           <span style="font-size:14px;font-weight:800;width:54px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${m.home}</span>
-          <input type="number" class="score-input" id="pred_${m.id}_h" min="0" max="20" value="${pred?pred.home:''}" placeholder="-" inputmode="numeric">
+          <input type="number" class="score-input" id="pred_${m.id}_h" min="0" max="20" value="" placeholder="-" inputmode="numeric">
           <span style="font-size:18px;color:var(--accent);font-weight:900">:</span>
-          <input type="number" class="score-input" id="pred_${m.id}_a" min="0" max="20" value="${pred?pred.away:''}" placeholder="-" inputmode="numeric">
+          <input type="number" class="score-input" id="pred_${m.id}_a" min="0" max="20" value="" placeholder="-" inputmode="numeric">
           <span style="font-size:14px;font-weight:800;width:54px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${m.away}</span>
           <span style="font-size:28px">${getFlag(m.away)}</span>
         </div>
       </div>`;
     });
     
-    html += `<button class="submit-btn" onclick="submitAllPredictions()" style="margin-top:12px">🔮 一键提交 ${currentRoundName}预言</button>`;
+    html += `<button class="submit-btn" onclick="submitAllPredictions()" style="margin-top:12px">🔮 一键提交预言</button>`;
     html += `</div>`;
-  } else if (allOpenM.length === 0) {
-    // No open matches at all
-  }
-  
-  // ===== NEXT ROUND PREVIEW =====
-  if (remainingRoundCount > 0 && openM.length > 0) {
-    const nextStage = remainingStages[0];
-    const nextCount = allOpenM.filter(m => m.stage === nextStage).length;
-    const nextDate = allOpenM.filter(m => m.stage === nextStage)[0]?.match_date;
-    const nextDateStr = nextDate ? fmtDate(nextDate) : '';
-    html += `<div class="card" style="opacity:.6;text-align:center;padding:12px;margin-top:8px">
-      <div style="font-size:12px;color:var(--text-muted)">⏭ 下一轮</div>
-      <div style="font-size:14px;font-weight:600;margin-top:4px">${getStageFullName(nextStage)}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${nextCount}场 · ${nextDateStr}开始</div>
+  } else if (upcomingIn24h.length === 0) {
+    // No matches in next 24h at all
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:14px;font-weight:600;color:var(--accent)">🔮 未来24小时</span>
+    </div>`;
+    html += `<div class="card" style="text-align:center;padding:16px">
+      <div style="font-size:28px;margin-bottom:6px">⏳</div>
+      <div style="font-size:14px;font-weight:600">未来24小时暂无比赛</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">新比赛开放后自动刷新</div>
     </div>`;
   }
   
-  // ===== CLOSED MATCHES (current round first, then previous rounds) =====
+  // ===== LATER MATCHES PREVIEW =====
+  if (upcomingLater.length > 0) {
+    const nextM = upcomingLater[0];
+    const nextDate = fmtDate(nextM.match_date);
+    const laterStages = [...new Set(upcomingLater.map(m => m.stage))];
+    html += `<div class="card" style="opacity:.6;text-align:center;padding:12px;margin-top:8px">
+      <div style="font-size:12px;color:var(--text-muted)">⏭ 24小时后</div>
+      <div style="font-size:14px;font-weight:600;margin-top:4px">${laterStages.map(s=>getStageFullName(s)).join(' / ')}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${upcomingLater.length}场 · ${nextDate}起</div>
+    </div>`;
+  }
+  
+  // ===== CLOSED MATCHES =====
   if (closedM.length) {
-    // Group closed matches by stage, show current round's closed first
-    const currentRoundClosed = closedM.filter(m => m.stage === currentRoundStage);
-    const otherClosed = closedM.filter(m => m.stage !== currentRoundStage);
-    const sortedClosed = [...currentRoundClosed, ...otherClosed];
-    
     html += `<div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--text-muted)">📋 已结束 / 截止</div>`;
-    sortedClosed.forEach(m => {
+    closedM.forEach(m => {
       const pred = myPreds[m.id];
       let statusHtml = '';
       if (m.result_home != null && pred) {
@@ -532,15 +576,8 @@ async function renderPredict(el) {
     });
   }
   
-  if (!openM.length && !closedM.length) {
+  if (!upcomingIn24h.length && !closedM.length && !mySubmittedIn24h.length) {
     html += `<div class="empty-state"><div class="icon">🔮</div><div class="title">暂无可预言比赛</div><div class="desc">等待管理员添加</div></div>`;
-  } else if (!openM.length && closedM.length) {
-    // All current round done, but no next round open yet
-    html += `<div class="card" style="text-align:center;margin-top:12px;padding:16px">
-      <div style="font-size:24px;margin-bottom:8px">⏳</div>
-      <div style="font-size:14px;font-weight:600">本轮预言已结束</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">下一轮比赛开放后将自动刷新</div>
-    </div>`;
   }
   
   el.innerHTML = html;
@@ -681,19 +718,23 @@ function renderAdmin(el) {
 async function submitAllPredictions() {
   if (!currentUser) { showUserModal(); return; }
   const now = new Date();
-  const allOpenM = matchesCache.filter(m => {
+  const in24h = new Date(now.getTime() + 24*3600*1000);
+  const myPreds = {};
+  predictionsCache.forEach(p => { myPreds[p.match_id] = true; });
+  
+  // Find unsubmitted matches within next 24h (same logic as renderPredict)
+  const openM = matchesCache.filter(m => {
     if (m.result_home != null) return false;
     if (m.home === 'TBD' || m.home.startsWith('1') || m.home.startsWith('2') || m.home.startsWith('3')) return false;
+    if (myPreds[m.id]) return false; // Already submitted
     const mt = new Date(m.match_date);
     const dl = new Date(mt.getTime() - 30*60000);
-    return now < dl;
+    if (now >= dl) return false; // Deadline passed
+    if (mt > in24h) return false; // Beyond 24h
+    return true;
   });
   
-  // Determine current round (same logic as renderPredict)
-  if (allOpenM.length === 0) { showToast('⚠️ 当前没有可预言的比赛'); return; }
-  allOpenM.sort((a, b) => a.match_date.localeCompare(b.match_date));
-  const currentRoundStage = allOpenM[0].stage;
-  const openM = allOpenM.filter(m => m.stage === currentRoundStage);
+  if (openM.length === 0) { showToast('⚠️ 当前没有可预言的比赛'); return; }
   
   let successCount = 0, failCount = 0, skipCount = 0;
   for (const m of openM) {
@@ -710,7 +751,7 @@ async function submitAllPredictions() {
   }
   
   if (successCount > 0) {
-    showToast(`✅ ${getStageFullName(currentRoundStage)}已提交 ${successCount} 场预言！${skipCount > 0 ? `（${skipCount}场未填写）` : ''}`);
+    showToast(`✅ 已提交 ${successCount} 场预言！${skipCount > 0 ? `（${skipCount}场未填写）` : ''}`);
   } else if (skipCount > 0) {
     showToast(`⚠️ 请至少填写1场比赛的比分`);
   } else {
