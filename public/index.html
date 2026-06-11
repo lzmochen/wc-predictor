@@ -148,15 +148,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 <!-- User Modal -->
 <div class="modal-overlay" id="userModal">
   <div class="modal">
-    <h2>👤 输入昵称</h2>
+    <h2>⚽ 进入绿茵预言家</h2>
     <div style="background:rgba(240,180,41,.12);border:1px solid rgba(240,180,41,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--accent);line-height:1.6">
-      ⚠️ 每人仅限注册一个账号<br>请使用真实姓名或群内昵称
+      ⚠️ 每人仅限注册一个账号，请使用真实姓名或群内昵称<br>
+      已注册用户请选择「登录」
     </div>
     <input type="text" id="inputNickname" placeholder="你的昵称" maxlength="10">
     <input type="password" id="inputRegPassword" placeholder="注册密码（群内获取）" style="margin-top:-4px">
-    <div class="btn-row">
+    <div class="btn-row" style="gap:8px">
       <button class="btn btn-secondary" onclick="closeUserModal()">取消</button>
-      <button class="btn btn-primary" onclick="loginUser()">进入</button>
+      <button class="btn btn-primary" style="background:var(--success);flex:1" onclick="loginExistingUser()">🔑 登录</button>
+      <button class="btn btn-primary" style="flex:1" onclick="registerNewUser()">📝 注册</button>
     </div>
   </div>
 </div>
@@ -203,10 +205,10 @@ async function api(path, opts = {}) {
 }
 
 // ========== AUTH ==========
-async function loginUser() {
+async function registerNewUser() {
   const name = document.getElementById('inputNickname').value.trim();
   const registerPassword = document.getElementById('inputRegPassword').value.trim();
-  if (!name) return;
+  if (!name) { showToast('⚠️ 请输入昵称'); return; }
   if (!registerPassword) { showToast('⚠️ 请输入注册密码'); return; }
   try {
     const data = await api('/api/register', { method: 'POST', body: JSON.stringify({ name, registerPassword }) });
@@ -215,8 +217,38 @@ async function loginUser() {
     closeUserModal();
     updateUserUI();
     renderAll();
-    showToast('欢迎，' + data.user.name + '！');
-  } catch(e) { showToast('❌ ' + e.message); }
+    showToast('🎉 注册成功，欢迎 ' + data.user.name + '！');
+  } catch(e) {
+    const msg = e.message || '';
+    if (msg.includes('已被注册')) {
+      showToast('❌ 该昵称已被注册，请换一个或点击「登录」');
+    } else {
+      showToast('❌ ' + msg);
+    }
+  }
+}
+
+async function loginExistingUser() {
+  const name = document.getElementById('inputNickname').value.trim();
+  const registerPassword = document.getElementById('inputRegPassword').value.trim();
+  if (!name) { showToast('⚠️ 请输入昵称'); return; }
+  if (!registerPassword) { showToast('⚠️ 请输入注册密码'); return; }
+  try {
+    const data = await api('/api/login', { method: 'POST', body: JSON.stringify({ name, registerPassword }) });
+    setToken(data.token);
+    currentUser = data.user;
+    closeUserModal();
+    updateUserUI();
+    renderAll();
+    showToast('👋 欢迎回来，' + data.user.name + '！');
+  } catch(e) {
+    const msg = e.message || '';
+    if (msg.includes('未注册')) {
+      showToast('❌ 该昵称未注册，请点击「注册」创建新账号');
+    } else {
+      showToast('❌ ' + msg);
+    }
+  }
 }
 
 async function adminLogin() {

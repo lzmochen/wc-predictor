@@ -215,7 +215,17 @@ function calcPoints(prediction, result) {
 
 // ========== API ROUTES ==========
 
-// Register / Login
+// Check if name exists (for registration flow)
+app.post('/api/check-name', (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '请输入昵称' });
+  const trimmed = name.trim().substring(0, 10);
+  const db = readDB();
+  const exists = db.users.some(u => u.name === trimmed);
+  res.json({ exists, name: trimmed });
+});
+
+// Register (new user only - name must NOT exist)
 app.post('/api/register', (req, res) => {
   const { name, registerPassword } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: '请输入昵称' });
@@ -231,16 +241,36 @@ app.post('/api/register', (req, res) => {
   }
   
   const trimmed = name.trim().substring(0, 10);
-  let user = db.users.find(u => u.name === trimmed);
-  if (!user) {
-    user = { id: db.nextUserId++, name: trimmed, ip: clientIP, created_at: new Date().toISOString() };
-    db.users.push(user);
-    // Track IP registration count
-    db.ipRegistry[clientIP] = ipCount + 1;
-    writeDB(db);
+  const existingUser = db.users.find(u => u.name === trimmed);
+  if (existingUser) {
+    return res.status(409).json({ error: '该昵称已被注册，请换一个昵称', hint: 'login' });
   }
+  
+  const user = { id: db.nextUserId++, name: trimmed, ip: clientIP, created_at: new Date().toISOString() };
+  db.users.push(user);
+  db.ipRegistry[clientIP] = ipCount + 1;
+  writeDB(db);
+  
   const token = jwt.sign({ id: user.id, name: user.name, isAdmin: false }, JWT_SECRET, { expiresIn: '30d' });
-  res.json({ token, user: { id: user.id, name: user.name } });
+  res.json({ token, user: { id: user.id, name: user.name }, isNew: true });
+});
+
+// Login (existing user only - name must exist)
+app.post('/api/login', (req, res) => {
+  const { name, registerPassword } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '请输入昵称' });
+  if (!registerPassword) return res.status(400).json({ error: '请输入注册密码' });
+  if (registerPassword !== REGISTER_PASSWORD) return res.status(400).json({ error: '注册密码错误' });
+  
+  const trimmed = name.trim().substring(0, 10);
+  const db = readDB();
+  const user = db.users.find(u => u.name === trimmed);
+  if (!user) {
+    return res.status(404).json({ error: '该昵称未注册，请先注册新账号' });
+  }
+  
+  const token = jwt.sign({ id: user.id, name: user.name, isAdmin: false }, JWT_SECRET, { expiresIn: '30d' });
+  res.json({ token, user: { id: user.id, name: user.name }, isNew: false });
 });
 
 // Admin Login
