@@ -14,27 +14,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .header .subtitle{font-size:12px;color:var(--text-muted)}
 .user-btn{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:4px}
 .user-btn .avatar{width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--primary);font-weight:bold}
-.nav{display:flex;gap:4px;background:var(--card);border-radius:10px;padding:3px}
-.nav-item{flex:1;text-align:center;padding:8px 4px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s;color:var(--text-muted);font-weight:500}
+.nav{display:flex;gap:3px;background:var(--card);border-radius:10px;padding:3px}
+.nav-item{flex:1;text-align:center;padding:7px 2px;border-radius:8px;cursor:pointer;font-size:11px;transition:all .2s;color:var(--text-muted);font-weight:500}
 .nav-item.active{background:var(--primary-light);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
-.nav-item .nav-icon{font-size:16px;display:block;margin-bottom:2px}
+.nav-item .nav-icon{font-size:15px;display:block;margin-bottom:1px}
 .content{padding:12px 16px 80px}
 .view{display:none}.view.active{display:block}
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;transition:all .2s}
 .match-card{position:relative;overflow:hidden}
 .match-card .stage-tag{position:absolute;top:12px;right:12px;background:var(--primary);color:var(--accent);font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
 .match-card .match-time{font-size:12px;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:4px}
-.match-card .teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.match-card .teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .team{flex:1;text-align:center}
-.team .flag{font-size:36px;margin-bottom:4px}
-.team .name{font-size:14px;font-weight:600}
-.team .score{font-size:28px;font-weight:800;color:var(--accent);margin-top:4px}
-.vs{font-size:16px;color:var(--text-muted);font-weight:700;padding:0 8px}
-.prediction-area{background:rgba(0,0,0,.2);border-radius:8px;padding:12px;margin-top:8px}
-.prediction-area .label{font-size:12px;color:var(--text-muted);margin-bottom:8px}
-.prediction-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.prediction-row .team-label{font-size:13px;font-weight:600;width:55px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.score-input{width:56px;height:40px;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:20px;font-weight:700;outline:none;transition:border-color .2s}
+.team .flag{font-size:32px;margin-bottom:2px}
+.team .name{font-size:13px;font-weight:600}
+.team .score{font-size:26px;font-weight:800;color:var(--accent);margin-top:2px}
+.vs{font-size:14px;color:var(--text-muted);font-weight:700;padding:0 6px}
+.prediction-row{display:flex;gap:6px;align-items:center;justify-content:center}
+.prediction-row .team-label{font-size:12px;font-weight:600;width:50px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.score-input{width:52px;height:38px;text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:18px;font-weight:700;outline:none;transition:border-color .2s}
 .score-input:focus{border-color:var(--accent)}
 .submit-btn{width:100%;padding:12px;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:var(--primary);transition:all .2s;margin-top:8px}
 .submit-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(240,180,41,.3)}
@@ -89,11 +87,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .save-result-btn{padding:8px 16px;border:none;border-radius:6px;background:var(--success);color:#fff;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--primary);color:var(--accent);padding:12px 24px;border-radius:24px;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:300;opacity:0;transition:all .3s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.date-header{font-size:14px;font-weight:700;color:var(--accent);padding:12px 0 6px;border-bottom:1px solid rgba(45,106,79,.3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.date-header .live-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeIn .3s ease}
 .loading{text-align:center;padding:40px;color:var(--text-muted)}
 .loading .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
+.schedule-match{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid rgba(45,106,79,.2);font-size:13px}
+.schedule-match:last-child{border-bottom:none}
+.schedule-match .sch-time{width:46px;font-weight:600;color:var(--accent);font-size:13px;flex-shrink:0}
+.schedule-match .sch-teams{flex:1;display:flex;align-items:center;gap:4px}
+.schedule-match .sch-flag{font-size:20px}
+.schedule-match .sch-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60px}
+.schedule-match .sch-vs{font-size:11px;color:var(--text-muted);margin:0 2px}
+.schedule-match .sch-score{font-size:16px;font-weight:800;color:var(--accent);min-width:40px;text-align:center}
+.schedule-match .sch-group{font-size:11px;color:var(--text-muted);background:var(--bg);padding:2px 6px;border-radius:8px;flex-shrink:0}
+.schedule-match.finished{opacity:.7}
+.schedule-match.live{border-left:3px solid var(--danger);padding-left:8px}
 @media(min-width:480px){.content{max-width:440px;margin:0 auto}}
 </style>
 </head>
@@ -111,11 +123,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
     </div>
   </div>
   <div class="nav">
-    <div class="nav-item active" data-view="predict" onclick="switchView('predict')">
-      <span class="nav-icon">🔮</span>预言
+    <div class="nav-item active" data-view="schedule" onclick="switchView('schedule')">
+      <span class="nav-icon">📅</span>赛程
     </div>
-    <div class="nav-item" data-view="results" onclick="switchView('results')">
-      <span class="nav-icon">📊</span>赛果
+    <div class="nav-item" data-view="predict" onclick="switchView('predict')">
+      <span class="nav-icon">🔮</span>预言
     </div>
     <div class="nav-item" data-view="leaderboard" onclick="switchView('leaderboard')">
       <span class="nav-icon">🏆</span>排行
@@ -127,8 +139,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 </div>
 
 <div class="content">
-  <div class="view active" id="view-predict"><div class="loading"><div class="spinner"></div>加载中...</div></div>
-  <div class="view" id="view-results"><div class="loading"><div class="spinner"></div>加载中...</div></div>
+  <div class="view active" id="view-schedule"><div class="loading"><div class="spinner"></div>加载中...</div></div>
+  <div class="view" id="view-predict"><div class="loading"><div class="spinner"></div>加载中...</div></div>
   <div class="view" id="view-leaderboard"><div class="loading"><div class="spinner"></div>加载中...</div></div>
   <div class="view" id="view-admin"><div class="loading"><div class="spinner"></div>加载中...</div></div>
 </div>
@@ -162,12 +174,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 
 <script>
 // ========== CONFIG ==========
-const API = '';  // Same origin
+const API = '';
+const AUTO_REFRESH_MS = 30000; // 30秒自动刷新
 
 // ========== STATE ==========
-let currentUser = null;  // { id, name, isAdmin }
+let currentUser = null;
 let matchesCache = [];
 let predictionsCache = [];
+let refreshTimer = null;
 
 function getToken() { return localStorage.getItem('wc_token'); }
 function setToken(t) { localStorage.setItem('wc_token', t); }
@@ -196,9 +210,7 @@ async function loginUser() {
     updateUserUI();
     renderAll();
     showToast('欢迎，' + data.user.name + '！');
-  } catch(e) {
-    showToast('❌ ' + e.message);
-  }
+  } catch(e) { showToast('❌ ' + e.message); }
 }
 
 async function adminLogin() {
@@ -212,9 +224,7 @@ async function adminLogin() {
     updateUserUI();
     renderAll();
     showToast('✅ 管理员已登录');
-  } catch(e) {
-    showToast('❌ ' + e.message);
-  }
+  } catch(e) { showToast('❌ ' + e.message); }
 }
 
 async function checkAuth() {
@@ -223,9 +233,7 @@ async function checkAuth() {
   try {
     const data = await api('/api/me');
     currentUser = data;
-  } catch(e) {
-    clearToken();
-  }
+  } catch(e) { clearToken(); }
 }
 
 function showUserModal() {
@@ -250,6 +258,18 @@ async function loadPredictions() {
   try { predictionsCache = await api('/api/predictions'); } catch(e) { predictionsCache = []; }
 }
 
+// ========== AUTO REFRESH ==========
+function startAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(async () => {
+    await loadMatches();
+    await loadPredictions();
+    // Re-render current view
+    const activeNav = document.querySelector('.nav-item.active');
+    if (activeNav) renderView(activeNav.dataset.view);
+  }, AUTO_REFRESH_MS);
+}
+
 // ========== VIEWS ==========
 function switchView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -262,35 +282,92 @@ async function renderAll() {
   await loadMatches();
   await loadPredictions();
   updateUserUI();
-  ['predict','results','leaderboard','admin'].forEach(v => renderView(v));
+  ['schedule','predict','leaderboard','admin'].forEach(v => renderView(v));
+  startAutoRefresh();
 }
 
 async function renderView(viewId) {
   const el = document.getElementById('view-' + viewId);
   if (!el) return;
   switch(viewId) {
+    case 'schedule': renderSchedule(el); break;
     case 'predict': await renderPredict(el); break;
-    case 'results': await renderResults(el); break;
     case 'leaderboard': await renderLeaderboard(el); break;
     case 'admin': renderAdmin(el); break;
   }
 }
 
 // ========== FLAGS ==========
-const FLAGS = {'墨西哥':'🇲🇽','南非':'🇿🇦','韩国':'🇰🇷','捷克':'🇨🇿','巴西':'🇧🇷','德国':'🇩🇪','法国':'🇫🇷','阿根廷':'🇦🇷','西班牙':'🇪🇸','英格兰':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','葡萄牙':'🇵🇹','荷兰':'🇳🇱','意大利':'🇮🇹','比利时':'🇧🇪','克罗地亚':'🇭🇷','乌拉圭':'🇺🇾','哥伦比亚':'🇨🇴','日本':'🇯🇵','美国':'🇺🇸','加拿大':'🇨🇦','澳大利亚':'🇦🇺','瑞士':'🇨🇭','丹麦':'🇩🇰','塞尔维亚':'🇷🇸','波兰':'🇵🇱','瑞典':'🇸🇪','摩洛哥':'🇲🇦','加纳':'🇬🇭','厄瓜多尔':'🇪🇨','喀麦隆':'🇨🇲','突尼斯':'🇹🇳','沙特':'🇸🇦','伊朗':'🇮🇷','尼日利亚':'🇳🇬','埃及':'🇪🇬','塞内加尔':'🇸🇳','智利':'🇨🇱','秘鲁':'🇵🇪','中国':'🇨🇳','卡塔尔':'🇶🇦','乌克兰':'🇺🇦','奥地利':'🇦🇹','匈牙利':'🇭🇺','土耳其':'🇹🇷','墨西哥城':'🏟️','瓜达拉哈拉':'🏟️','洛杉矶':'🏟️','纽约':'🏟️','达拉斯':'🏟️','休斯顿':'🏟️','迈阿密':'🏟️','旧金山':'🏟️','温哥华':'🏟️','多伦多':'🏟️','蒙特雷':'🏟️'};
+const FLAGS = {'墨西哥':'🇲🇽','南非':'🇿🇦','韩国':'🇰🇷','捷克':'🇨🇿','巴西':'🇧🇷','德国':'🇩🇪','法国':'🇫🇷','阿根廷':'🇦🇷','西班牙':'🇪🇸','英格兰':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','葡萄牙':'🇵🇹','荷兰':'🇳🇱','意大利':'🇮🇹','比利时':'🇧🇪','克罗地亚':'🇭🇷','乌拉圭':'🇺🇾','哥伦比亚':'🇨🇴','日本':'🇯🇵','美国':'🇺🇸','加拿大':'🇨🇦','澳大利亚':'🇦🇺','瑞士':'🇨🇭','丹麦':'🇩🇰','塞尔维亚':'🇷🇸','波兰':'🇵🇱','瑞典':'🇸🇪','摩洛哥':'🇲🇦','加纳':'🇬🇭','厄瓜多尔':'🇪🇨','喀麦隆':'🇨🇲','突尼斯':'🇹🇳','沙特':'🇸🇦','伊朗':'🇮🇷','尼日利亚':'🇳🇬','埃及':'🇪🇬','塞内加尔':'🇸🇳','智利':'🇨🇱','秘鲁':'🇵🇪','中国':'🇨🇳','卡塔尔':'🇶🇦','乌克兰':'🇺🇦','奥地利':'🇦🇹','匈牙利':'🇭🇺','土耳其':'🇹🇷','波黑':'🇧🇦','巴拉圭':'🇵🇾','海地':'🇭🇹','苏格兰':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','库拉索':'🇨🇼','科特迪瓦':'🇨🇮','新西兰':'🇳🇿','佛得角':'🇨🇻','阿尔及利亚':'🇩🇿','约旦':'🇯🇴','民主刚果':'🇨🇩','乌兹别克斯坦':'🇺🇿','巴拿马':'🇵🇦','伊拉克':'🇮🇶','挪威':'🇳🇴','阿尔及利亚':'🇩🇿','墨西哥城':'🏟️','瓜达拉哈拉':'🏟️','洛杉矶':'🏟️','纽约':'🏟️','达拉斯':'🏟️','休斯顿':'🏟️','迈阿密':'🏟️','旧金山':'🏟️','温哥华':'🏟️','多伦多':'🏟️','蒙特雷':'🏟️','波士顿':'🏟️','费城':'🏟️','亚特兰大':'🏟️','西雅图':'🏟️','堪萨斯城':'🏟️'};
 function getFlag(n){return FLAGS[n]||'🏳️'}
 
 const STAGES = [
   {id:'group1',name:'小组赛第1轮',short:'小组R1'},
   {id:'group2',name:'小组赛第2轮',short:'小组R2'},
   {id:'group3',name:'小组赛第3轮',short:'小组R3'},
-  {id:'r32',name:'1/8决赛',short:'16强'},
+  {id:'r32',name:'1/16决赛',short:'16强'},
   {id:'r16',name:'1/4决赛',short:'8强'},
   {id:'r8',name:'半决赛',short:'4强'},
   {id:'r3rd',name:'季军赛',short:'季军'},
   {id:'final',name:'决赛',short:'决赛'},
 ];
 function getStageName(id){return STAGES.find(s=>s.id===id)?.short||id}
+function getStageFullName(id){return STAGES.find(s=>s.id===id)?.name||id}
+
+// ========== SCHEDULE VIEW ==========
+function renderSchedule(el) {
+  const now = new Date();
+  const todayStr = now.toISOString().substring(0,10);
+  
+  // Group matches by date
+  const grouped = {};
+  matchesCache.forEach(m => {
+    const d = m.match_date.substring(0,10);
+    if (!grouped[d]) grouped[d] = [];
+    grouped[d].push(m);
+  });
+  
+  const dates = Object.keys(grouped).sort();
+  let html = '';
+  
+  dates.forEach(d => {
+    const isToday = d === todayStr;
+    const isPast = d < todayStr;
+    const dateObj = new Date(d + 'T00:00:00');
+    const weekDay = ['日','一','二','三','四','五','六'][dateObj.getDay()];
+    const label = isToday ? '🔥 今天' : `${parseInt(d.substring(5,7))}月${parseInt(d.substring(8,10))}日 周${weekDay}`;
+    
+    html += `<div class="date-header${isToday?' fade-in':''}">${label}${isToday?'<div class="live-dot"></div>':''}</div>`;
+    html += `<div class="card" style="padding:8px 12px;margin-bottom:8px">`;
+    
+    grouped[d].forEach(m => {
+      const time = m.match_date.substring(11,16);
+      const hasResult = m.result_home != null;
+      const isLive = !hasResult && new Date(m.match_date) <= now && new Date(new Date(m.match_date).getTime() + 120*60000) >= now;
+      const cls = hasResult ? 'finished' : isLive ? 'live' : '';
+      
+      html += `<div class="schedule-match ${cls}">
+        <div class="sch-time">${time}</div>
+        <div class="sch-teams">
+          <span class="sch-flag">${getFlag(m.home)}</span>
+          <span class="sch-name">${m.home}</span>
+          ${hasResult ? `<span class="sch-score">${m.result_home}:${m.result_away}</span>` : isLive ? `<span class="sch-score" style="color:var(--danger)">进行中</span>` : `<span class="sch-vs">vs</span>`}
+          <span class="sch-name">${m.away}</span>
+          <span class="sch-flag">${getFlag(m.away)}</span>
+        </div>
+        ${m.group_name ? `<span class="sch-group">${m.group_name}组</span>` : `<span class="sch-group">${getStageName(m.stage)}</span>`}
+      </div>`;
+    });
+    
+    html += `</div>`;
+  });
+  
+  if (!dates.length) {
+    html = `<div class="empty-state"><div class="icon">📅</div><div class="title">暂无赛程</div></div>`;
+  }
+  
+  el.innerHTML = html;
+}
 
 // ========== PREDICT VIEW ==========
 async function renderPredict(el) {
@@ -305,6 +382,7 @@ async function renderPredict(el) {
   const openM = [], closedM = [];
   
   matchesCache.forEach(m => {
+    if (m.home === 'TBD' || m.home.startsWith('1') || m.home.startsWith('2') || m.home.startsWith('3')) return; // Skip TBD matches
     const mt = new Date(m.match_date);
     const dl = new Date(mt.getTime() - 30*60000);
     if (m.result_home != null || now >= dl) closedM.push(m);
@@ -329,13 +407,53 @@ async function renderPredict(el) {
     <div class="breakdown">
       <div class="item"><div class="val">${predCount}</div><div class="lbl">已预言</div></div>
       <div class="item"><div class="val">${correctCount}</div><div class="lbl">猜中</div></div>
-      <div class="item"><div class="val">${matchesCache.filter(m=>m.result_home==null).length}</div><div class="lbl">待开赛</div></div>
+      <div class="item"><div class="val">${openM.length}</div><div class="lbl">可预言</div></div>
     </div>
   </div>`;
   
-  // ===== CLOSED / FINISHED MATCHES (show results at top) =====
+  // ===== UNIFIED PREDICTION FORM =====
+  if (openM.length) {
+    html += `<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--accent)">🔮 填写预言 (${openM.length}场)</div>`;
+    html += `<div class="card" style="padding:12px">`;
+    
+    let currentDate = '';
+    openM.forEach((m, idx) => {
+      const mDate = m.match_date.substring(0,10);
+      if (mDate !== currentDate) {
+        currentDate = mDate;
+        const dateObj = new Date(mDate + 'T00:00:00');
+        const weekDay = ['日','一','二','三','四','五','六'][dateObj.getDay()];
+        const label = `${parseInt(mDate.substring(5,7))}月${parseInt(mDate.substring(8,10))}日 周${weekDay}`;
+        if (idx > 0) html += `<div style="border-top:1px solid var(--border);margin:12px 0"></div>`;
+        html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">📅 ${label}</div>`;
+      }
+      
+      const pred = myPreds[m.id];
+      const time = m.match_date.substring(11,16);
+      html += `<div style="margin-bottom:${idx < openM.length-1 ? '10px' : '0'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--text-muted)">${time} · ${m.group_name?m.group_name+'组':''}</span>
+          <span style="font-size:10px;background:var(--primary);color:var(--accent);padding:1px 6px;border-radius:8px">${getStageName(m.stage)}</span>
+        </div>
+        <div class="prediction-row">
+          <span style="font-size:20px">${getFlag(m.home)}</span>
+          <span style="font-size:11px;font-weight:600;width:46px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.home}</span>
+          <input type="number" class="score-input" id="pred_${m.id}_h" min="0" max="20" value="${pred?pred.home:''}" placeholder="-" inputmode="numeric">
+          <span style="font-size:16px;color:var(--text-muted);font-weight:700">:</span>
+          <input type="number" class="score-input" id="pred_${m.id}_a" min="0" max="20" value="${pred?pred.away:''}" placeholder="-" inputmode="numeric">
+          <span style="font-size:11px;font-weight:600;width:46px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.away}</span>
+          <span style="font-size:20px">${getFlag(m.away)}</span>
+        </div>
+      </div>`;
+    });
+    
+    html += `<button class="submit-btn" onclick="submitAllPredictions()" style="margin-top:12px">🔮 一键提交全部预言</button>`;
+    html += `</div>`;
+  }
+  
+  // ===== CLOSED MATCHES =====
   if (closedM.length) {
-    html += `<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">📋 已结束 / 截止</div>`;
+    html += `<div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--text-muted)">📋 已结束 / 截止</div>`;
     closedM.forEach(m => {
       const pred = myPreds[m.id];
       let statusHtml = '';
@@ -368,85 +486,9 @@ async function renderPredict(el) {
     });
   }
   
-  // ===== UNIFIED PREDICTION FORM (at the bottom) =====
-  if (openM.length) {
-    html += `<div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--accent)">🔮 填写预言 (${openM.length}场)</div>`;
-    html += `<div class="card" style="padding:12px">`;
-    
-    openM.forEach((m, idx) => {
-      const pred = myPreds[m.id];
-      if (idx > 0) html += `<div style="border-top:1px solid var(--border);margin:12px 0"></div>`;
-      html += `<div class="predict-row-item">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:12px;color:var(--text-muted)">📅 ${fmtDate(m.match_date)}</div>
-          <div style="font-size:11px;background:var(--primary);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:600">${getStageName(m.stage)}</div>
-        </div>
-        <div class="prediction-row" style="justify-content:center;gap:6px">
-          <div style="text-align:center;min-width:60px">
-            <div style="font-size:24px">${getFlag(m.home)}</div>
-            <div style="font-size:12px;font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.home}</div>
-          </div>
-          <input type="number" class="score-input" id="pred_${m.id}_h" min="0" max="20" value="${pred?pred.home:''}" placeholder="-" inputmode="numeric">
-          <div style="font-size:18px;color:var(--text-muted);font-weight:700">:</div>
-          <input type="number" class="score-input" id="pred_${m.id}_a" min="0" max="20" value="${pred?pred.away:''}" placeholder="-" inputmode="numeric">
-          <div style="text-align:center;min-width:60px">
-            <div style="font-size:24px">${getFlag(m.away)}</div>
-            <div style="font-size:12px;font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.away}</div>
-          </div>
-        </div>
-      </div>`;
-    });
-    
-    html += `<button class="submit-btn" onclick="submitAllPredictions()" style="margin-top:4px">🔮 一键提交全部预言</button>`;
-    html += `</div>`;
-  }
-  
   if (!openM.length && !closedM.length) {
-    html += `<div class="empty-state"><div class="icon">🔮</div><div class="title">暂无比赛</div><div class="desc">等待管理员添加</div></div>`;
+    html += `<div class="empty-state"><div class="icon">🔮</div><div class="title">暂无可预言比赛</div><div class="desc">等待管理员添加</div></div>`;
   }
-  
-  el.innerHTML = html;
-}
-
-// ========== RESULTS VIEW ==========
-async function renderResults(el) {
-  const completed = matchesCache.filter(m => m.result_home != null);
-  if (!completed.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">📊</div><div class="title">暂无赛果</div><div class="desc">比赛结束后将显示</div></div>`;
-    return;
-  }
-  
-  const myPreds = {};
-  predictionsCache.forEach(p => { myPreds[p.match_id] = { home: p.pred_home, away: p.pred_away }; });
-  
-  let html = `<div style="font-size:14px;font-weight:600;margin-bottom:12px">📋 已出结果 (${completed.length}场)</div>`;
-  completed.forEach(m => {
-    const pred = myPreds[m.id];
-    let ptsHtml = '';
-    if (pred) {
-      const pts = calcPoints(pred, {home:m.result_home,away:m.result_away});
-      const bd = getBreakdown(pred, {home:m.result_home,away:m.result_away});
-      if (pts > 0) {
-        ptsHtml = `<div class="prediction-status correct">${bd.map(b=>`${b.label}+${b.pts}`).join(' · ')} = +${pts}</div>`;
-      } else {
-        ptsHtml = `<div class="prediction-status wrong">❌ 未猜中 (0分)</div>`;
-      }
-    } else {
-      ptsHtml = `<div class="prediction-status wrong">未参与预测</div>`;
-    }
-    
-    html += `<div class="card match-card fade-in">
-      <div class="stage-tag">${getStageName(m.stage)}</div>
-      <div class="match-time">📅 ${fmtDate(m.match_date)}</div>
-      <div class="teams">
-        <div class="team"><div class="flag">${getFlag(m.home)}</div><div class="name">${m.home}</div><div class="score">${m.result_home}</div></div>
-        <div class="vs">终场</div>
-        <div class="team"><div class="flag">${getFlag(m.away)}</div><div class="name">${m.away}</div><div class="score">${m.result_away}</div></div>
-      </div>
-      ${pred?`<div style="text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:6px">我的预言：${m.home} ${pred.home}:${pred.away} ${m.away}</div>`:''}
-      ${ptsHtml}
-    </div>`;
-  });
   
   el.innerHTML = html;
 }
@@ -456,16 +498,16 @@ async function renderLeaderboard(el) {
   let rankings = [];
   try { rankings = await api('/api/leaderboard?stage=total'); } catch(e) {}
   
-  // Stage tabs
   let html = `<div class="stage-tabs">`;
   html += `<div class="stage-tab active" data-stage="total" onclick="switchStage(this)">🔥 总榜</div>`;
-  const usedStages = [...new Set(matchesCache.map(m=>m.stage))];
+  const usedStages = [...new Set(matchesCache.filter(m=>m.result_home!=null).map(m=>m.stage))];
   STAGES.forEach(s => {
     if (usedStages.includes(s.id)) {
       html += `<div class="stage-tab" data-stage="${s.id}" onclick="switchStage(this)">${s.short}</div>`;
     }
   });
   html += `</div><div id="lb-content"></div>`;
+  html += `<div style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px">⏱ 每30秒自动刷新</div>`;
   el.innerHTML = html;
   
   renderRankings('total');
@@ -496,7 +538,7 @@ async function renderRankings(stage) {
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
     html += `<div class="leaderboard-item">
       <div class="rank ${rc}">${medal||(i+1)}</div>
-      <div class="lb-info"><div class="lb-name">${r.name}</div><div class="lb-stats">猜中${r.correct}场</div></div>
+      <div class="lb-info"><div class="lb-name">${r.name}</div><div class="lb-stats">猜中${r.correct}场 / 预言${r.predCount}场</div></div>
       <div class="lb-points">${r.points}<span> 分</span></div>
     </div>`;
   });
@@ -514,11 +556,17 @@ async function renderRankings(stage) {
 // ========== ADMIN VIEW ==========
 function renderAdmin(el) {
   if (!currentUser || !currentUser.isAdmin) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><div class="title">管理员专属</div><div class="desc">仅限管理员操作，点击下方登录</div><button class="submit-btn" style="max-width:200px;margin:16px auto 0" onclick="showAdminModal()">🔑 管理员登录</button></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><div class="title">管理员专属</div><div class="desc">仅限管理员操作</div><button class="submit-btn" style="max-width:200px;margin:16px auto 0" onclick="showAdminModal()">🔑 管理员登录</button></div>`;
     return;
   }
   
   let html = `<div style="font-size:14px;font-weight:600;margin-bottom:12px">⚙️ 管理后台</div>`;
+  
+  // Quick actions
+  html += `<div class="card">
+    <div style="font-weight:600;margin-bottom:10px">⚡ 快捷操作</div>
+    <button class="submit-btn" onclick="resetSchedule()" style="margin-bottom:8px;background:linear-gradient(135deg,var(--primary-light),var(--primary))">🔄 重置为完整赛程</button>
+  </div>`;
   
   // Add match
   html += `<div class="card">
@@ -542,7 +590,7 @@ function renderAdmin(el) {
   
   // Enter results
   html += `<div class="card"><div style="font-weight:600;margin-bottom:10px">📊 录入赛果</div>`;
-  const pending = matchesCache.filter(m => m.result_home == null);
+  const pending = matchesCache.filter(m => m.result_home == null && m.home !== 'TBD' && !m.home.startsWith('1') && !m.home.startsWith('2') && !m.home.startsWith('3'));
   if (!pending.length) {
     html += `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px">暂无待录入比赛</div>`;
   } else {
@@ -550,9 +598,9 @@ function renderAdmin(el) {
       html += `<div class="admin-match">
         <div class="match-label">${getFlag(m.home)} ${m.home} vs ${m.away} ${getFlag(m.away)}</div>
         <div class="score-row">
-          <input type="number" id="res_${m.id}_h" min="0" max="20" placeholder="${m.home}球">
+          <input type="number" id="res_${m.id}_h" min="0" max="20" placeholder="${m.home}">
           <span>:</span>
-          <input type="number" id="res_${m.id}_a" min="0" max="20" placeholder="${m.away}球">
+          <input type="number" id="res_${m.id}_a" min="0" max="20" placeholder="${m.away}">
           <button class="save-result-btn" onclick="saveResult(${m.id})">✅ 录入</button>
         </div>
       </div>`;
@@ -560,39 +608,29 @@ function renderAdmin(el) {
   }
   html += `</div>`;
   
-  // Matches list with delete
-  html += `<div class="card"><div style="font-weight:600;margin-bottom:10px">📋 所有比赛</div>`;
-  matchesCache.forEach(m => {
-    const resultStr = m.result_home != null ? ` (${m.result_home}:${m.result_away})` : '';
-    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(45,106,79,.2);font-size:13px">
-      <span>${getFlag(m.home)} ${m.home} vs ${m.away} ${getFlag(m.away)}${resultStr}</span>
-      <button onclick="deleteMatch(${m.id})" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px">🗑️</button>
-    </div>`;
-  });
-  html += `</div>`;
+  // Stats
+  const total = matchesCache.length;
+  const finished = matchesCache.filter(m => m.result_home != null).length;
+  const users = new Set(predictionsCache.map(p => p.user_id)).size;
+  html += `<div class="card" style="text-align:center">
+    <div style="font-size:13px;color:var(--text-muted)">📊 数据统计</div>
+    <div style="display:flex;justify-content:center;gap:24px;margin-top:8px">
+      <div><div style="font-size:20px;font-weight:700;color:var(--accent)">${total}</div><div style="font-size:11px;color:var(--text-muted)">总比赛</div></div>
+      <div><div style="font-size:20px;font-weight:700;color:var(--success)">${finished}</div><div style="font-size:11px;color:var(--text-muted)">已结束</div></div>
+      <div><div style="font-size:20px;font-weight:700;color:var(--gold)">${users}</div><div style="font-size:11px;color:var(--text-muted)">参与用户</div></div>
+    </div>
+  </div>`;
   
   el.innerHTML = html;
 }
 
 // ========== ACTIONS ==========
-async function submitPrediction(matchId) {
-  if (!currentUser) { showUserModal(); return; }
-  const h = parseInt(document.getElementById(`pred_${matchId}_h`).value);
-  const a = parseInt(document.getElementById(`pred_${matchId}_a`).value);
-  if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { showToast('请输入有效比分！'); return; }
-  try {
-    await api('/api/predict', { method: 'POST', body: JSON.stringify({ matchId, predHome: h, predAway: a }) });
-    showToast('✅ 预言已提交！');
-    await loadPredictions();
-    renderView('predict');
-  } catch(e) { showToast('❌ ' + e.message); }
-}
-
 async function submitAllPredictions() {
   if (!currentUser) { showUserModal(); return; }
   const now = new Date();
   const openM = matchesCache.filter(m => {
     if (m.result_home != null) return false;
+    if (m.home === 'TBD' || m.home.startsWith('1') || m.home.startsWith('2') || m.home.startsWith('3')) return false;
     const mt = new Date(m.match_date);
     const dl = new Date(mt.getTime() - 30*60000);
     return now < dl;
@@ -662,6 +700,16 @@ async function deleteMatch(matchId) {
     await loadMatches();
     renderView('admin');
     renderView('predict');
+  } catch(e) { showToast('❌ ' + e.message); }
+}
+
+async function resetSchedule() {
+  if (!confirm('重置所有比赛为完整世界杯赛程？（已有预言会保留）')) return;
+  try {
+    const data = await api('/api/admin/reset-schedule', { method: 'POST' });
+    showToast(`✅ 已重置 ${data.count} 场比赛！`);
+    await loadMatches();
+    renderAll();
   } catch(e) { showToast('❌ ' + e.message); }
 }
 
