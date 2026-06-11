@@ -379,15 +379,32 @@ async function renderPredict(el) {
   const myPreds = {};
   predictionsCache.forEach(p => { myPreds[p.match_id] = { home: p.pred_home, away: p.pred_away }; });
   const now = new Date();
-  const openM = [], closedM = [];
+  const allOpenM = [], closedM = [];
   
   matchesCache.forEach(m => {
     if (m.home === 'TBD' || m.home.startsWith('1') || m.home.startsWith('2') || m.home.startsWith('3')) return; // Skip TBD matches
     const mt = new Date(m.match_date);
     const dl = new Date(mt.getTime() - 30*60000);
     if (m.result_home != null || now >= dl) closedM.push(m);
-    else openM.push(m);
+    else allOpenM.push(m);
   });
+  
+  // ===== DETERMINE CURRENT ROUND =====
+  // Find the stage of the earliest open match = current round
+  let currentRoundStage = null;
+  let currentRoundName = '';
+  if (allOpenM.length > 0) {
+    // Sort by match date to find the earliest
+    allOpenM.sort((a, b) => a.match_date.localeCompare(b.match_date));
+    currentRoundStage = allOpenM[0].stage;
+    currentRoundName = getStageFullName(currentRoundStage);
+  }
+  
+  // Only show matches from the current round
+  const openM = currentRoundStage ? allOpenM.filter(m => m.stage === currentRoundStage) : [];
+  // Count remaining rounds after current
+  const remainingStages = [...new Set(allOpenM.filter(m => m.stage !== currentRoundStage).map(m => m.stage))];
+  const remainingRoundCount = remainingStages.length;
   
   let html = '';
   
@@ -407,13 +424,16 @@ async function renderPredict(el) {
     <div class="breakdown">
       <div class="item"><div class="val">${predCount}</div><div class="lbl">已预言</div></div>
       <div class="item"><div class="val">${correctCount}</div><div class="lbl">猜中</div></div>
-      <div class="item"><div class="val">${openM.length}</div><div class="lbl">可预言</div></div>
+      <div class="item"><div class="val">${allOpenM.length}</div><div class="lbl">待预言</div></div>
     </div>
   </div>`;
   
-  // ===== UNIFIED PREDICTION FORM =====
+  // ===== UNIFIED PREDICTION FORM (CURRENT ROUND ONLY) =====
   if (openM.length) {
-    html += `<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--accent)">🔮 填写预言 (${openM.length}场)</div>`;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:14px;font-weight:600;color:var(--accent)">🔮 ${currentRoundName}</span>
+      <span style="font-size:12px;color:var(--text-muted)">${openM.length}场可预言${remainingRoundCount > 0 ? ` · 还有${remainingRoundCount}轮` : ''}</span>
+    </div>`;
     html += `<div class="card" style="padding:12px">`;
     
     let currentDate = '';
@@ -447,14 +467,34 @@ async function renderPredict(el) {
       </div>`;
     });
     
-    html += `<button class="submit-btn" onclick="submitAllPredictions()" style="margin-top:12px">🔮 一键提交全部预言</button>`;
+    html += `<button class="submit-btn" onclick="submitAllPredictions()" style="margin-top:12px">🔮 一键提交 ${currentRoundName}预言</button>`;
     html += `</div>`;
+  } else if (allOpenM.length === 0) {
+    // No open matches at all
   }
   
-  // ===== CLOSED MATCHES =====
+  // ===== NEXT ROUND PREVIEW =====
+  if (remainingRoundCount > 0 && openM.length > 0) {
+    const nextStage = remainingStages[0];
+    const nextCount = allOpenM.filter(m => m.stage === nextStage).length;
+    const nextDate = allOpenM.filter(m => m.stage === nextStage)[0]?.match_date;
+    const nextDateStr = nextDate ? fmtDate(nextDate) : '';
+    html += `<div class="card" style="opacity:.6;text-align:center;padding:12px;margin-top:8px">
+      <div style="font-size:12px;color:var(--text-muted)">⏭ 下一轮</div>
+      <div style="font-size:14px;font-weight:600;margin-top:4px">${getStageFullName(nextStage)}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${nextCount}场 · ${nextDateStr}开始</div>
+    </div>`;
+  }
+  
+  // ===== CLOSED MATCHES (current round first, then previous rounds) =====
   if (closedM.length) {
+    // Group closed matches by stage, show current round's closed first
+    const currentRoundClosed = closedM.filter(m => m.stage === currentRoundStage);
+    const otherClosed = closedM.filter(m => m.stage !== currentRoundStage);
+    const sortedClosed = [...currentRoundClosed, ...otherClosed];
+    
     html += `<div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--text-muted)">📋 已结束 / 截止</div>`;
-    closedM.forEach(m => {
+    sortedClosed.forEach(m => {
       const pred = myPreds[m.id];
       let statusHtml = '';
       if (m.result_home != null && pred) {
@@ -488,6 +528,13 @@ async function renderPredict(el) {
   
   if (!openM.length && !closedM.length) {
     html += `<div class="empty-state"><div class="icon">🔮</div><div class="title">暂无可预言比赛</div><div class="desc">等待管理员添加</div></div>`;
+  } else if (!openM.length && closedM.length) {
+    // All current round done, but no next round open yet
+    html += `<div class="card" style="text-align:center;margin-top:12px;padding:16px">
+      <div style="font-size:24px;margin-bottom:8px">⏳</div>
+      <div style="font-size:14px;font-weight:600">本轮预言已结束</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">下一轮比赛开放后将自动刷新</div>
+    </div>`;
   }
   
   el.innerHTML = html;
@@ -628,13 +675,19 @@ function renderAdmin(el) {
 async function submitAllPredictions() {
   if (!currentUser) { showUserModal(); return; }
   const now = new Date();
-  const openM = matchesCache.filter(m => {
+  const allOpenM = matchesCache.filter(m => {
     if (m.result_home != null) return false;
     if (m.home === 'TBD' || m.home.startsWith('1') || m.home.startsWith('2') || m.home.startsWith('3')) return false;
     const mt = new Date(m.match_date);
     const dl = new Date(mt.getTime() - 30*60000);
     return now < dl;
   });
+  
+  // Determine current round (same logic as renderPredict)
+  if (allOpenM.length === 0) { showToast('⚠️ 当前没有可预言的比赛'); return; }
+  allOpenM.sort((a, b) => a.match_date.localeCompare(b.match_date));
+  const currentRoundStage = allOpenM[0].stage;
+  const openM = allOpenM.filter(m => m.stage === currentRoundStage);
   
   let successCount = 0, failCount = 0, skipCount = 0;
   for (const m of openM) {
@@ -651,7 +704,7 @@ async function submitAllPredictions() {
   }
   
   if (successCount > 0) {
-    showToast(`✅ 已提交 ${successCount} 场预言！${skipCount > 0 ? `（${skipCount}场未填写）` : ''}`);
+    showToast(`✅ ${getStageFullName(currentRoundStage)}已提交 ${successCount} 场预言！${skipCount > 0 ? `（${skipCount}场未填写）` : ''}`);
   } else if (skipCount > 0) {
     showToast(`⚠️ 请至少填写1场比赛的比分`);
   } else {
