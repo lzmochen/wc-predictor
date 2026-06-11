@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'mem_wc2026_secret';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mem2026';
 const REGISTER_PASSWORD = process.env.REGISTER_PASSWORD || 'thumem';
+const MAX_ACCOUNTS_PER_IP = parseInt(process.env.MAX_ACCOUNTS_PER_IP) || 2;
 const DATA_DIR = process.env.RENDER_DISK_PATH || __dirname;
 
 // Middleware
@@ -135,9 +136,12 @@ const DB_PATH = path.join(DATA_DIR, 'db.json');
 function readDB() {
   try {
     if (!fs.existsSync(DB_PATH)) return { users: [], matches: [], predictions: [], nextUserId: 1, nextMatchId: 1, nextPredId: 1 };
-    return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+    const db = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+    // Ensure ipRegistry exists for backwards compatibility
+    if (!db.ipRegistry) db.ipRegistry = {};
+    return db;
   } catch(e) {
-    return { users: [], matches: [], predictions: [], nextUserId: 1, nextMatchId: 1, nextPredId: 1 };
+    return { users: [], matches: [], predictions: [], nextUserId: 1, nextMatchId: 1, nextPredId: 1, ipRegistry: {} };
   }
 }
 
@@ -217,12 +221,22 @@ app.post('/api/register', (req, res) => {
   if (!name || !name.trim()) return res.status(400).json({ error: '请输入昵称' });
   if (!registerPassword) return res.status(400).json({ error: '请输入注册密码' });
   if (registerPassword !== REGISTER_PASSWORD) return res.status(400).json({ error: '注册密码错误，请联系群主获取' });
-  const trimmed = name.trim().substring(0, 10);
+  
+  // IP-based registration limit
+  const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
   const db = readDB();
+  const ipCount = db.ipRegistry[clientIP] || 0;
+  if (ipCount >= MAX_ACCOUNTS_PER_IP) {
+    return res.status(429).json({ error: `该设备已注册${ipCount}个账号，每人限1个账号，多注册请联系管理员` });
+  }
+  
+  const trimmed = name.trim().substring(0, 10);
   let user = db.users.find(u => u.name === trimmed);
   if (!user) {
-    user = { id: db.nextUserId++, name: trimmed, created_at: new Date().toISOString() };
+    user = { id: db.nextUserId++, name: trimmed, ip: clientIP, created_at: new Date().toISOString() };
     db.users.push(user);
+    // Track IP registration count
+    db.ipRegistry[clientIP] = ipCount + 1;
     writeDB(db);
   }
   const token = jwt.sign({ id: user.id, name: user.name, isAdmin: false }, JWT_SECRET, { expiresIn: '30d' });
@@ -408,7 +422,31 @@ app.delete('/api/admin/match/:id', adminAuth, (req, res) => {
 // Get all users (admin)
 app.get('/api/admin/users', adminAuth, (req, res) => {
   const db = readDB();
-  res.json(db.users);
+  // Include IP info for admin
+  const users = db.users.map(u => ({
+    id: u.id,
+    name: u.name,
+    ip: u.ip || 'unknown',
+    created_at: u.created_at
+  }));
+  res.json(users);
+});
+
+// Get IP registration stats (admin)
+app.get('/api/admin/ip-stats', adminAuth, (req, res) => {
+  const db = readDB();
+  const ipMap = {};
+  db.users.forEach(u => {
+    const ip = u.ip || 'unknown';
+    if (!ipMap[ip]) ipMap[ip] = { count: 0, users: [] };
+    ipMap[ip].count++;
+    ipMap[ip].users.push(u.name);
+  });
+  // Only show IPs with 2+ accounts
+  const suspicious = Object.entries(ipMap)
+    .filter(([_, v]) => v.count >= 2)
+    .map(([ip, v]) => ({ ip, count: v.count, users: v.users }));
+  res.json({ totalUsers: db.users.length, suspiciousIPs: suspicious, ipRegistry: db.ipRegistry || {} });
 });
 
 // Reset matches to WC schedule (admin)
