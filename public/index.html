@@ -333,35 +333,9 @@ async function renderPredict(el) {
     </div>
   </div>`;
   
-  if (openM.length) {
-    html += `<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--accent)">🔮 待预言 (${openM.length})</div>`;
-    openM.forEach(m => {
-      const pred = myPreds[m.id];
-      html += `<div class="card match-card fade-in">
-        <div class="stage-tag">${getStageName(m.stage)}</div>
-        <div class="match-time">📅 ${fmtDate(m.match_date)} · ${getFlag(m.venue)} ${m.venue}</div>
-        <div class="teams">
-          <div class="team"><div class="flag">${getFlag(m.home)}</div><div class="name">${m.home}</div></div>
-          <div class="vs">VS</div>
-          <div class="team"><div class="flag">${getFlag(m.away)}</div><div class="name">${m.away}</div></div>
-        </div>
-        <div class="prediction-area">
-          <div class="label">填入你预测的比分：</div>
-          <div class="prediction-row">
-            <div class="team-label">${m.home}</div>
-            <input type="number" class="score-input" id="pred_${m.id}_h" min="0" max="20" value="${pred?pred.home:''}" placeholder="-" inputmode="numeric">
-            <div style="font-size:20px;color:var(--text-muted);font-weight:700">:</div>
-            <input type="number" class="score-input" id="pred_${m.id}_a" min="0" max="20" value="${pred?pred.away:''}" placeholder="-" inputmode="numeric">
-            <div class="team-label">${m.away}</div>
-          </div>
-          <button class="submit-btn" onclick="submitPrediction(${m.id})">${pred?'✅ 更新预言':'🔮 提交预言'}</button>
-        </div>
-      </div>`;
-    });
-  }
-  
+  // ===== CLOSED / FINISHED MATCHES (show results at top) =====
   if (closedM.length) {
-    html += `<div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--text-muted)">📋 已结束 / 截止</div>`;
+    html += `<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">📋 已结束 / 截止</div>`;
     closedM.forEach(m => {
       const pred = myPreds[m.id];
       let statusHtml = '';
@@ -392,6 +366,39 @@ async function renderPredict(el) {
         ${statusHtml}
       </div>`;
     });
+  }
+  
+  // ===== UNIFIED PREDICTION FORM (at the bottom) =====
+  if (openM.length) {
+    html += `<div style="font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--accent)">🔮 填写预言 (${openM.length}场)</div>`;
+    html += `<div class="card" style="padding:12px">`;
+    
+    openM.forEach((m, idx) => {
+      const pred = myPreds[m.id];
+      if (idx > 0) html += `<div style="border-top:1px solid var(--border);margin:12px 0"></div>`;
+      html += `<div class="predict-row-item">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--text-muted)">📅 ${fmtDate(m.match_date)}</div>
+          <div style="font-size:11px;background:var(--primary);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:600">${getStageName(m.stage)}</div>
+        </div>
+        <div class="prediction-row" style="justify-content:center;gap:6px">
+          <div style="text-align:center;min-width:60px">
+            <div style="font-size:24px">${getFlag(m.home)}</div>
+            <div style="font-size:12px;font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.home}</div>
+          </div>
+          <input type="number" class="score-input" id="pred_${m.id}_h" min="0" max="20" value="${pred?pred.home:''}" placeholder="-" inputmode="numeric">
+          <div style="font-size:18px;color:var(--text-muted);font-weight:700">:</div>
+          <input type="number" class="score-input" id="pred_${m.id}_a" min="0" max="20" value="${pred?pred.away:''}" placeholder="-" inputmode="numeric">
+          <div style="text-align:center;min-width:60px">
+            <div style="font-size:24px">${getFlag(m.away)}</div>
+            <div style="font-size:12px;font-weight:600;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.away}</div>
+          </div>
+        </div>
+      </div>`;
+    });
+    
+    html += `<button class="submit-btn" onclick="submitAllPredictions()" style="margin-top:4px">🔮 一键提交全部预言</button>`;
+    html += `</div>`;
   }
   
   if (!openM.length && !closedM.length) {
@@ -579,6 +586,42 @@ async function submitPrediction(matchId) {
     await loadPredictions();
     renderView('predict');
   } catch(e) { showToast('❌ ' + e.message); }
+}
+
+async function submitAllPredictions() {
+  if (!currentUser) { showUserModal(); return; }
+  const now = new Date();
+  const openM = matchesCache.filter(m => {
+    if (m.result_home != null) return false;
+    const mt = new Date(m.match_date);
+    const dl = new Date(mt.getTime() - 30*60000);
+    return now < dl;
+  });
+  
+  let successCount = 0, failCount = 0, skipCount = 0;
+  for (const m of openM) {
+    const hEl = document.getElementById(`pred_${m.id}_h`);
+    const aEl = document.getElementById(`pred_${m.id}_a`);
+    if (!hEl || !aEl) continue;
+    const h = parseInt(hEl.value);
+    const a = parseInt(aEl.value);
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) { skipCount++; continue; }
+    try {
+      await api('/api/predict', { method: 'POST', body: JSON.stringify({ matchId: m.id, predHome: h, predAway: a }) });
+      successCount++;
+    } catch(e) { failCount++; }
+  }
+  
+  if (successCount > 0) {
+    showToast(`✅ 已提交 ${successCount} 场预言！${skipCount > 0 ? `（${skipCount}场未填写）` : ''}`);
+  } else if (skipCount > 0) {
+    showToast(`⚠️ 请至少填写1场比赛的比分`);
+  } else {
+    showToast(`❌ 提交失败`);
+  }
+  
+  await loadPredictions();
+  renderView('predict');
 }
 
 async function addMatch() {
