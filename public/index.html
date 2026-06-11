@@ -644,6 +644,9 @@ async function renderRankings(stage) {
 }
 
 // ========== ADMIN VIEW ==========
+let adminUsersCache = [];
+let adminUserDetailId = null;
+
 function renderAdmin(el) {
   if (!currentUser || !currentUser.isAdmin) {
     el.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><div class="title">管理员专属</div><div class="desc">仅限管理员操作</div><button class="submit-btn" style="max-width:200px;margin:16px auto 0" onclick="showAdminModal()">🔑 管理员登录</button></div>`;
@@ -656,6 +659,12 @@ function renderAdmin(el) {
   html += `<div class="card">
     <div style="font-weight:600;margin-bottom:10px">⚡ 快捷操作</div>
     <button class="submit-btn" onclick="resetSchedule()" style="margin-bottom:8px;background:linear-gradient(135deg,var(--primary-light),var(--primary))">🔄 重置为完整赛程</button>
+  </div>`;
+  
+  // User management
+  html += `<div class="card">
+    <div style="font-weight:600;margin-bottom:10px">👥 用户管理</div>
+    <div id="admin-users-content"><div class="loading"><div class="spinner"></div></div></div>
   </div>`;
   
   // Add match
@@ -712,6 +721,112 @@ function renderAdmin(el) {
   </div>`;
   
   el.innerHTML = html;
+  
+  // Load users after DOM is ready
+  loadAdminUsers();
+}
+
+async function loadAdminUsers() {
+  const container = document.getElementById('admin-users-content');
+  if (!container) return;
+  try {
+    adminUsersCache = await api('/api/admin/users');
+  } catch(e) { adminUsersCache = []; }
+  renderAdminUsersList();
+}
+
+function renderAdminUsersList() {
+  const container = document.getElementById('admin-users-content');
+  if (!container) return;
+  
+  if (!adminUsersCache.length) {
+    container.innerHTML = `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:12px">暂无注册用户</div>`;
+    return;
+  }
+  
+  let html = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">共 ${adminUsersCache.length} 个用户</div>`;
+  
+  adminUsersCache.forEach(u => {
+    const regDate = u.created_at ? u.created_at.substring(0,10) : '';
+    html += `<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid rgba(45,106,79,.2);gap:8px">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0">${u.name[0]}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${u.predCount}条预言 · ${regDate} · ${u.ip !== 'unknown' ? u.ip.substring(0,15) : ''}</div>
+      </div>
+      <button style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text-muted);font-size:11px;cursor:pointer;flex-shrink:0" onclick="viewUserDetail(${u.id})">详情</button>
+      <button style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--accent);font-size:11px;cursor:pointer;flex-shrink:0" onclick="showEditUser(${u.id})">改名</button>
+      <button style="padding:4px 8px;border:1px solid var(--danger);border-radius:6px;background:transparent;color:var(--danger);font-size:11px;cursor:pointer;flex-shrink:0" onclick="deleteUser(${u.id},'${u.name.replace(/'/g,"\\'")}')">删除</button>
+    </div>`;
+  });
+  
+  container.innerHTML = html;
+}
+
+async function viewUserDetail(userId) {
+  try {
+    const data = await api('/api/admin/user/' + userId + '/predictions');
+    const user = data.user;
+    const preds = data.predictions;
+    
+    let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:14px;font-weight:600;color:var(--accent)">${user.name} 的预言记录</span>
+      <button style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text-muted);font-size:12px;cursor:pointer" onclick="renderAdminUsersList()">← 返回</button>
+    </div>`;
+    
+    if (!preds.length) {
+      html += `<div style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px">暂无预言记录</div>`;
+    } else {
+      preds.forEach(p => {
+        const hasResult = p.result_home != null;
+        const pts = hasResult ? calcPoints({home:p.pred_home,away:p.pred_away},{home:p.result_home,away:p.result_away}) : null;
+        html += `<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid rgba(45,106,79,.15);font-size:12px;gap:4px">
+          <span style="font-size:14px">${getFlag(p.home)}</span>
+          <span style="color:var(--text-muted);min-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.home}</span>
+          <span style="font-weight:800;color:var(--accent)">${p.pred_home}:${p.pred_away}</span>
+          <span style="color:var(--text-muted);min-width:40px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.away}</span>
+          <span style="font-size:14px">${getFlag(p.away)}</span>
+          ${hasResult ? `<span style="font-size:11px;color:var(--text-muted);margin-left:auto">实际${p.result_home}:${p.result_away} ${pts>0?'+'+pts+'分':'未中'}</span>` : `<span style="font-size:11px;color:var(--text-muted);margin-left:auto">待赛</span>`}
+          <button style="padding:2px 6px;border:1px solid var(--danger);border-radius:4px;background:transparent;color:var(--danger);font-size:10px;cursor:pointer;margin-left:4px" onclick="deletePrediction(${p.id},${userId})">删</button>
+        </div>`;
+      });
+    }
+    
+    const container = document.getElementById('admin-users-content');
+    if (container) container.innerHTML = html;
+  } catch(e) { showToast('❌ ' + e.message); }
+}
+
+async function showEditUser(userId) {
+  const user = adminUsersCache.find(u => u.id === userId);
+  if (!user) return;
+  const newName = prompt('修改昵称：', user.name);
+  if (!newName || newName.trim() === user.name) return;
+  try {
+    await api('/api/admin/user/' + userId, { method: 'PUT', body: JSON.stringify({ name: newName.trim() }) });
+    showToast('✅ 昵称已修改');
+    await loadAdminUsers();
+  } catch(e) { showToast('❌ ' + e.message); }
+}
+
+async function deleteUser(userId, userName) {
+  if (!confirm(`确定删除用户「${userName}」？该用户的所有预言也会被删除，此操作不可撤销！`)) return;
+  try {
+    await api('/api/admin/user/' + userId, { method: 'DELETE' });
+    showToast('✅ 已删除用户 ' + userName);
+    await loadAdminUsers();
+    await loadMatches();
+    await loadPredictions();
+  } catch(e) { showToast('❌ ' + e.message); }
+}
+
+async function deletePrediction(predId, userId) {
+  if (!confirm('确定删除这条预言？')) return;
+  try {
+    await api('/api/admin/prediction/' + predId, { method: 'DELETE' });
+    showToast('✅ 已删除预言');
+    await viewUserDetail(userId);
+  } catch(e) { showToast('❌ ' + e.message); }
 }
 
 // ========== ACTIONS ==========

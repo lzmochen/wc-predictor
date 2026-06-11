@@ -422,14 +422,91 @@ app.delete('/api/admin/match/:id', adminAuth, (req, res) => {
 // Get all users (admin)
 app.get('/api/admin/users', adminAuth, (req, res) => {
   const db = readDB();
-  // Include IP info for admin
-  const users = db.users.map(u => ({
-    id: u.id,
-    name: u.name,
-    ip: u.ip || 'unknown',
-    created_at: u.created_at
-  }));
+  // Include IP info and prediction count
+  const users = db.users.map(u => {
+    const predCount = db.predictions.filter(p => p.user_id === u.id).length;
+    return {
+      id: u.id,
+      name: u.name,
+      ip: u.ip || 'unknown',
+      predCount,
+      created_at: u.created_at
+    };
+  });
   res.json(users);
+});
+
+// Update user name (admin)
+app.put('/api/admin/user/:id', adminAuth, (req, res) => {
+  const userId = parseInt(req.params.id);
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '昵称不能为空' });
+  const db = readDB();
+  const user = db.users.find(u => u.id === userId);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  // Check name conflict
+  const trimmed = name.trim().substring(0, 10);
+  if (db.users.find(u => u.id !== userId && u.name === trimmed)) {
+    return res.status(400).json({ error: '该昵称已被占用' });
+  }
+  user.name = trimmed;
+  writeDB(db);
+  res.json({ success: true, user: { id: user.id, name: user.name } });
+});
+
+// Delete user and their predictions (admin)
+app.delete('/api/admin/user/:id', adminAuth, (req, res) => {
+  const userId = parseInt(req.params.id);
+  const db = readDB();
+  const user = db.users.find(u => u.id === userId);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  
+  // Update IP registry count
+  if (user.ip && db.ipRegistry[user.ip]) {
+    db.ipRegistry[user.ip] = Math.max(0, db.ipRegistry[user.ip] - 1);
+    if (db.ipRegistry[user.ip] === 0) delete db.ipRegistry[user.ip];
+  }
+  
+  // Remove user and their predictions
+  db.users = db.users.filter(u => u.id !== userId);
+  db.predictions = db.predictions.filter(p => p.user_id !== userId);
+  writeDB(db);
+  res.json({ success: true, deletedPredictions: db.predictions.length });
+});
+
+// Get user's predictions (admin)
+app.get('/api/admin/user/:id/predictions', adminAuth, (req, res) => {
+  const userId = parseInt(req.params.id);
+  const db = readDB();
+  const user = db.users.find(u => u.id === userId);
+  if (!user) return res.status(404).json({ error: '用户不存在' });
+  
+  const preds = db.predictions.filter(p => p.user_id === userId).map(p => {
+    const match = db.matches.find(m => m.id === p.match_id);
+    return {
+      id: p.id,
+      match_id: p.match_id,
+      home: match?.home || '未知',
+      away: match?.away || '未知',
+      match_date: match?.match_date || '',
+      pred_home: p.pred_home,
+      pred_away: p.pred_away,
+      result_home: match?.result_home,
+      result_away: match?.result_away
+    };
+  });
+  res.json({ user: { id: user.id, name: user.name }, predictions: preds });
+});
+
+// Delete a specific prediction (admin)
+app.delete('/api/admin/prediction/:id', adminAuth, (req, res) => {
+  const predId = parseInt(req.params.id);
+  const db = readDB();
+  const idx = db.predictions.findIndex(p => p.id === predId);
+  if (idx < 0) return res.status(404).json({ error: '预言不存在' });
+  db.predictions.splice(idx, 1);
+  writeDB(db);
+  res.json({ success: true });
 });
 
 // Get IP registration stats (admin)
