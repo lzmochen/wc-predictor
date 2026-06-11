@@ -422,16 +422,27 @@ app.delete('/api/admin/match/:id', adminAuth, (req, res) => {
 // Get all users (admin)
 app.get('/api/admin/users', adminAuth, (req, res) => {
   const db = readDB();
-  // Include IP info and prediction count
-  const users = db.users.map(u => {
+  // Include admin as a virtual entry
+  const adminPredCount = db.predictions.filter(p => p.user_id === 0).length;
+  const users = [{
+    id: 0,
+    name: '管理员',
+    ip: 'system',
+    predCount: adminPredCount,
+    created_at: '',
+    isSystemAdmin: true
+  }];
+  // Add regular users with backward compatibility for old users without ip field
+  db.users.forEach(u => {
     const predCount = db.predictions.filter(p => p.user_id === u.id).length;
-    return {
+    users.push({
       id: u.id,
       name: u.name,
-      ip: u.ip || 'unknown',
+      ip: u.ip || '',
       predCount,
-      created_at: u.created_at
-    };
+      created_at: u.created_at || '',
+      isSystemAdmin: false
+    });
   });
   res.json(users);
 });
@@ -439,6 +450,7 @@ app.get('/api/admin/users', adminAuth, (req, res) => {
 // Update user name (admin)
 app.put('/api/admin/user/:id', adminAuth, (req, res) => {
   const userId = parseInt(req.params.id);
+  if (userId === 0) return res.status(403).json({ error: '不能修改系统管理员' });
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: '昵称不能为空' });
   const db = readDB();
@@ -457,6 +469,7 @@ app.put('/api/admin/user/:id', adminAuth, (req, res) => {
 // Delete user and their predictions (admin)
 app.delete('/api/admin/user/:id', adminAuth, (req, res) => {
   const userId = parseInt(req.params.id);
+  if (userId === 0) return res.status(403).json({ error: '不能删除系统管理员' });
   const db = readDB();
   const user = db.users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: '用户不存在' });
@@ -478,7 +491,8 @@ app.delete('/api/admin/user/:id', adminAuth, (req, res) => {
 app.get('/api/admin/user/:id/predictions', adminAuth, (req, res) => {
   const userId = parseInt(req.params.id);
   const db = readDB();
-  const user = db.users.find(u => u.id === userId);
+  // Support admin virtual user (id=0)
+  const user = userId === 0 ? { id: 0, name: '管理员' } : db.users.find(u => u.id === userId);
   if (!user) return res.status(404).json({ error: '用户不存在' });
   
   const preds = db.predictions.filter(p => p.user_id === userId).map(p => {
