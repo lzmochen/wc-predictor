@@ -1,11 +1,11 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'mem_wc2026_secret_key_change_in_production';
+const JWT_SECRET = process.env.JWT_SECRET || 'mem_wc2026_secret';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mem2026';
 const DATA_DIR = process.env.RENDER_DISK_PATH || __dirname;
 
@@ -13,98 +13,42 @@ const DATA_DIR = process.env.RENDER_DISK_PATH || __dirname;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ========== DATABASE (SQLite3 Async) ==========
-const dbPath = path.join(DATA_DIR, 'data.db');
+// ========== JSON FILE DATABASE ==========
+const DB_PATH = path.join(DATA_DIR, 'db.json');
 
-function openDb() {
-  return new Promise((resolve, reject) => {
-    const db = new sqlite3.Database(dbPath, (err) => {
-      if (err) reject(err);
-      else resolve(db);
-    });
-  });
+function readDB() {
+  try {
+    if (!fs.existsSync(DB_PATH)) return { users: [], matches: [], predictions: [], nextUserId: 1, nextMatchId: 1, nextPredId: 1 };
+    return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+  } catch(e) {
+    return { users: [], matches: [], predictions: [], nextUserId: 1, nextMatchId: 1, nextPredId: 1 };
+  }
 }
 
-function dbRun(db, sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
+function writeDB(data) {
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf8');
 }
 
-function dbGet(db, sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-}
-
-function dbAll(db, sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-}
-
-async function initDb() {
-  const db = await openDb();
-
-  await dbRun(db, `CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  await dbRun(db, `CREATE TABLE IF NOT EXISTS matches (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    stage TEXT NOT NULL,
-    group_name TEXT DEFAULT '',
-    home TEXT NOT NULL,
-    away TEXT NOT NULL,
-    match_date TEXT NOT NULL,
-    venue TEXT DEFAULT '',
-    result_home INTEGER DEFAULT NULL,
-    result_away INTEGER DEFAULT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  await dbRun(db, `CREATE TABLE IF NOT EXISTS predictions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    match_id INTEGER NOT NULL,
-    pred_home INTEGER NOT NULL,
-    pred_away INTEGER NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, match_id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (match_id) REFERENCES matches(id)
-  )`);
-
-  // Seed default matches if empty
-  const count = await dbGet(db, 'SELECT COUNT(*) as c FROM matches');
-  if (count.c === 0) {
+// Seed default matches
+function seedMatches() {
+  const db = readDB();
+  if (db.matches.length === 0) {
     const seed = [
-      ['group1', 'A', '墨西哥', '南非', '2026-06-12T03:00', '墨西哥城'],
-      ['group1', 'A', '韩国', '捷克', '2026-06-12T10:00', '瓜达拉哈拉'],
-      ['group1', 'B', '巴西', '瑞士', '2026-06-12T22:00', '洛杉矶'],
-      ['group1', 'B', '法国', '哥伦比亚', '2026-06-13T06:00', '纽约'],
-      ['group1', 'C', '阿根廷', '摩洛哥', '2026-06-13T09:00', '达拉斯'],
-      ['group1', 'C', '英格兰', '塞内加尔', '2026-06-13T22:00', '休斯顿'],
+      { stage: 'group1', group_name: 'A', home: '墨西哥', away: '南非', match_date: '2026-06-12T03:00', venue: '墨西哥城', result_home: null, result_away: null },
+      { stage: 'group1', group_name: 'A', home: '韩国', away: '捷克', match_date: '2026-06-12T10:00', venue: '瓜达拉哈拉', result_home: null, result_away: null },
+      { stage: 'group1', group_name: 'B', home: '巴西', away: '瑞士', match_date: '2026-06-12T22:00', venue: '洛杉矶', result_home: null, result_away: null },
+      { stage: 'group1', group_name: 'B', home: '法国', away: '哥伦比亚', match_date: '2026-06-13T06:00', venue: '纽约', result_home: null, result_away: null },
+      { stage: 'group1', group_name: 'C', home: '阿根廷', away: '摩洛哥', match_date: '2026-06-13T09:00', venue: '达拉斯', result_home: null, result_away: null },
+      { stage: 'group1', group_name: 'C', home: '英格兰', away: '塞内加尔', match_date: '2026-06-13T22:00', venue: '休斯顿', result_home: null, result_away: null },
     ];
-    for (const r of seed) {
-      await dbRun(db, 'INSERT INTO matches (stage, group_name, home, away, match_date, venue) VALUES (?,?,?,?,?,?)', r);
-    }
+    seed.forEach(m => {
+      m.id = db.nextMatchId++;
+      m.created_at = new Date().toISOString();
+      db.matches.push(m);
+    });
+    writeDB(db);
     console.log('✅ 已初始化默认比赛数据');
   }
-
-  db.close();
 }
 
 // ========== AUTH HELPERS ==========
@@ -132,28 +76,36 @@ function adminAuth(req, res, next) {
   }
 }
 
+// ========== POINTS LOGIC ==========
+function calcPoints(prediction, result) {
+  if (!prediction || !result) return 0;
+  const ph = prediction.home, pa = prediction.away;
+  const rh = result.home, ra = result.away;
+  let points = 0;
+  const pO = ph > pa ? 'W' : ph < pa ? 'L' : 'D';
+  const rO = rh > ra ? 'W' : rh < ra ? 'L' : 'D';
+  if (pO === rO) points += 1;
+  if ((ph+pa<=2?'low':'high') === (rh+ra<=2?'low':'high') && pO === rO) points += 2;
+  if (ph === rh && pa === ra) points += 5;
+  return points;
+}
+
 // ========== API ROUTES ==========
 
 // Register / Login
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: '请输入昵称' });
   const trimmed = name.trim().substring(0, 10);
-
-  const db = await openDb();
-  try {
-    let user = await dbGet(db, 'SELECT * FROM users WHERE name = ?', [trimmed]);
-    if (!user) {
-      const result = await dbRun(db, 'INSERT INTO users (name) VALUES (?)', [trimmed]);
-      user = { id: result.lastID, name: trimmed };
-    }
-    const token = jwt.sign({ id: user.id, name: user.name, isAdmin: false }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: { id: user.id, name: user.name } });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
+  const db = readDB();
+  let user = db.users.find(u => u.name === trimmed);
+  if (!user) {
+    user = { id: db.nextUserId++, name: trimmed, created_at: new Date().toISOString() };
+    db.users.push(user);
+    writeDB(db);
   }
+  const token = jwt.sign({ id: user.id, name: user.name, isAdmin: false }, JWT_SECRET, { expiresIn: '30d' });
+  res.json({ token, user: { id: user.id, name: user.name } });
 });
 
 // Admin Login
@@ -170,181 +122,141 @@ app.get('/api/me', auth, (req, res) => {
 });
 
 // Get all matches
-app.get('/api/matches', async (req, res) => {
-  const db = await openDb();
-  try {
-    const matches = await dbAll(db, 'SELECT * FROM matches ORDER BY match_date ASC');
-    res.json(matches);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
-  }
+app.get('/api/matches', (req, res) => {
+  const db = readDB();
+  const matches = db.matches.sort((a, b) => a.match_date.localeCompare(b.match_date));
+  res.json(matches);
 });
 
 // Submit prediction
-app.post('/api/predict', auth, async (req, res) => {
+app.post('/api/predict', auth, (req, res) => {
   const { matchId, predHome, predAway } = req.body;
   if (matchId == null || predHome == null || predAway == null) return res.status(400).json({ error: '参数不完整' });
   if (predHome < 0 || predAway < 0 || predHome > 20 || predAway > 20) return res.status(400).json({ error: '比分无效' });
 
-  const db = await openDb();
-  try {
-    const match = await dbGet(db, 'SELECT * FROM matches WHERE id = ?', [matchId]);
-    if (!match) return res.status(404).json({ error: '比赛不存在' });
-    if (match.result_home != null) return res.status(400).json({ error: '比赛已结束' });
+  const db = readDB();
+  const match = db.matches.find(m => m.id === matchId);
+  if (!match) return res.status(404).json({ error: '比赛不存在' });
+  if (match.result_home != null) return res.status(400).json({ error: '比赛已结束' });
 
-    const deadline = new Date(match.match_date);
-    deadline.setMinutes(deadline.getMinutes() - 30);
-    if (new Date() > deadline) return res.status(400).json({ error: '预言已截止' });
+  const deadline = new Date(match.match_date);
+  deadline.setMinutes(deadline.getMinutes() - 30);
+  if (new Date() > deadline) return res.status(400).json({ error: '预言已截止' });
 
-    await dbRun(db, `
-      INSERT INTO predictions (user_id, match_id, pred_home, pred_away) VALUES (?, ?, ?, ?)
-      ON CONFLICT(user_id, match_id) DO UPDATE SET pred_home=excluded.pred_home, pred_away=excluded.pred_away, updated_at=CURRENT_TIMESTAMP
-    `, [req.user.id, matchId, predHome, predAway]);
-
-    res.json({ success: true });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
+  const existIdx = db.predictions.findIndex(p => p.user_id === req.user.id && p.match_id === matchId);
+  if (existIdx >= 0) {
+    db.predictions[existIdx].pred_home = predHome;
+    db.predictions[existIdx].pred_away = predAway;
+    db.predictions[existIdx].updated_at = new Date().toISOString();
+  } else {
+    db.predictions.push({
+      id: db.nextPredId++,
+      user_id: req.user.id,
+      match_id: matchId,
+      pred_home: predHome,
+      pred_away: predAway,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
   }
+  writeDB(db);
+  res.json({ success: true });
 });
 
 // Get my predictions
-app.get('/api/predictions', auth, async (req, res) => {
-  const db = await openDb();
-  try {
-    const preds = await dbAll(db, 'SELECT * FROM predictions WHERE user_id = ?', [req.user.id]);
-    res.json(preds);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
-  }
+app.get('/api/predictions', auth, (req, res) => {
+  const db = readDB();
+  const preds = db.predictions.filter(p => p.user_id === req.user.id);
+  res.json(preds);
 });
 
 // Get leaderboard
-app.get('/api/leaderboard', async (req, res) => {
+app.get('/api/leaderboard', (req, res) => {
   const { stage } = req.query;
-  const db = await openDb();
+  const db = readDB();
 
-  try {
-    let matches;
-    if (stage && stage !== 'total') {
-      matches = await dbAll(db, 'SELECT * FROM matches WHERE stage = ? AND result_home IS NOT NULL', [stage]);
-    } else {
-      matches = await dbAll(db, 'SELECT * FROM matches WHERE result_home IS NOT NULL');
-    }
+  let matches;
+  if (stage && stage !== 'total') {
+    matches = db.matches.filter(m => m.stage === stage && m.result_home != null);
+  } else {
+    matches = db.matches.filter(m => m.result_home != null);
+  }
 
-    if (matches.length === 0) return res.json([]);
+  if (matches.length === 0) return res.json([]);
 
-    const matchIds = matches.map(m => m.id);
-    const placeholders = matchIds.map(() => '?').join(',');
-
-    const rows = await dbAll(db, `
-      SELECT u.id as user_id, u.name, COUNT(p.id) as pred_count
-      FROM users u
-      LEFT JOIN predictions p ON u.id = p.user_id AND p.match_id IN (${placeholders})
-      GROUP BY u.id
-    `, matchIds);
-
-    const allPreds = await dbAll(db, `
-      SELECT p.* FROM predictions p WHERE p.match_id IN (${placeholders})
-    `, matchIds);
-
-    const userPredMap = {};
-    allPreds.forEach(p => {
+  const matchIds = new Set(matches.map(m => m.id));
+  const userPredMap = {};
+  db.predictions.forEach(p => {
+    if (matchIds.has(p.match_id)) {
       if (!userPredMap[p.user_id]) userPredMap[p.user_id] = {};
       userPredMap[p.user_id][p.match_id] = { home: p.pred_home, away: p.pred_away };
+    }
+  });
+
+  const result = db.users.map(u => {
+    let points = 0, correct = 0, predCount = 0;
+    matches.forEach(m => {
+      const pred = userPredMap[u.id]?.[m.id];
+      if (pred) {
+        predCount++;
+        const pts = calcPoints(pred, { home: m.result_home, away: m.result_away });
+        points += pts;
+        if (pts > 0) correct++;
+      }
     });
+    return { userId: u.id, name: u.name, points, correct, predCount };
+  }).filter(u => u.predCount > 0).sort((a, b) => b.points - a.points || b.correct - a.correct);
 
-    const result = rows.map(u => {
-      let points = 0;
-      let correct = 0;
-      let predCount = 0;
-      matches.forEach(m => {
-        const pred = userPredMap[u.user_id]?.[m.id];
-        if (pred) {
-          predCount++;
-          if (m.result_home != null) {
-            const pts = calcPoints(pred, { home: m.result_home, away: m.result_away });
-            points += pts;
-            if (pts > 0) correct++;
-          }
-        }
-      });
-      return { userId: u.user_id, name: u.name, points, correct, predCount };
-    }).sort((a, b) => b.points - a.points || b.correct - a.correct);
-
-    res.json(result);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
-  }
+  res.json(result);
 });
 
 // ========== ADMIN API ==========
 
 // Add match
-app.post('/api/admin/match', adminAuth, async (req, res) => {
+app.post('/api/admin/match', adminAuth, (req, res) => {
   const { stage, groupName, home, away, matchDate, venue } = req.body;
   if (!stage || !home || !away || !matchDate) return res.status(400).json({ error: '参数不完整' });
 
-  const db = await openDb();
-  try {
-    await dbRun(db, 'INSERT INTO matches (stage, group_name, home, away, match_date, venue) VALUES (?,?,?,?,?,?)',
-      [stage, groupName || '', home, away, matchDate, venue || '']);
-    res.json({ success: true });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
-  }
+  const db = readDB();
+  db.matches.push({
+    id: db.nextMatchId++,
+    stage, group_name: groupName || '', home, away,
+    match_date: matchDate, venue: venue || '',
+    result_home: null, result_away: null,
+    created_at: new Date().toISOString()
+  });
+  writeDB(db);
+  res.json({ success: true });
 });
 
 // Set match result
-app.post('/api/admin/result', adminAuth, async (req, res) => {
+app.post('/api/admin/result', adminAuth, (req, res) => {
   const { matchId, resultHome, resultAway } = req.body;
   if (!matchId || resultHome == null || resultAway == null) return res.status(400).json({ error: '参数不完整' });
 
-  const db = await openDb();
-  try {
-    await dbRun(db, 'UPDATE matches SET result_home = ?, result_away = ? WHERE id = ?', [resultHome, resultAway, matchId]);
-    res.json({ success: true });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
-  }
+  const db = readDB();
+  const match = db.matches.find(m => m.id === matchId);
+  if (!match) return res.status(404).json({ error: '比赛不存在' });
+  match.result_home = resultHome;
+  match.result_away = resultAway;
+  writeDB(db);
+  res.json({ success: true });
 });
 
 // Delete match
-app.delete('/api/admin/match/:id', adminAuth, async (req, res) => {
-  const db = await openDb();
-  try {
-    await dbRun(db, 'DELETE FROM predictions WHERE match_id = ?', [req.params.id]);
-    await dbRun(db, 'DELETE FROM matches WHERE id = ?', [req.params.id]);
-    res.json({ success: true });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
-  }
+app.delete('/api/admin/match/:id', adminAuth, (req, res) => {
+  const matchId = parseInt(req.params.id);
+  const db = readDB();
+  db.matches = db.matches.filter(m => m.id !== matchId);
+  db.predictions = db.predictions.filter(p => p.match_id !== matchId);
+  writeDB(db);
+  res.json({ success: true });
 });
 
 // Get all users (admin)
-app.get('/api/admin/users', adminAuth, async (req, res) => {
-  const db = await openDb();
-  try {
-    const users = await dbAll(db, 'SELECT * FROM users ORDER BY created_at ASC');
-    res.json(users);
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  } finally {
-    db.close();
-  }
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  const db = readDB();
+  res.json(db.users);
 });
 
 // Health check
@@ -352,44 +264,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// ========== POINTS LOGIC ==========
-function calcPoints(prediction, result) {
-  if (!prediction || !result) return 0;
-  const ph = prediction.home, pa = prediction.away;
-  const rh = result.home, ra = result.away;
-
-  let points = 0;
-  const pOutcome = ph > pa ? 'W' : ph < pa ? 'L' : 'D';
-  const rOutcome = rh > ra ? 'W' : rh < ra ? 'L' : 'D';
-
-  if (pOutcome === rOutcome) points += 1;
-
-  const pTotal = ph + pa, rTotal = rh + ra;
-  const pRange = pTotal <= 2 ? 'low' : 'high';
-  const rRange = rTotal <= 2 ? 'low' : 'high';
-  if (pRange === rRange && pOutcome === rOutcome) points += 2;
-
-  if (ph === rh && pa === ra) points += 5;
-
-  return points;
-}
-
 // SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start
-async function start() {
-  await initDb();
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⚽ 绿茵预言家服务器已启动: http://localhost:${PORT}`);
-    console.log(`🔑 管理员密码: ${ADMIN_PASSWORD}`);
-    console.log(`📁 数据目录: ${DATA_DIR}`);
-  });
-}
-
-start().catch(err => {
-  console.error('启动失败:', err);
-  process.exit(1);
+seedMatches();
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`⚽ 绿茵预言家服务器已启动: http://localhost:${PORT}`);
+  console.log(`🔑 管理员密码: ${ADMIN_PASSWORD}`);
 });
