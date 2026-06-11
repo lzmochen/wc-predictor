@@ -7,6 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'mem_wc2026_secret';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mem2026';
+const REGISTER_PASSWORD = process.env.REGISTER_PASSWORD || 'thumem';
 const DATA_DIR = process.env.RENDER_DISK_PATH || __dirname;
 
 // Middleware
@@ -212,8 +213,10 @@ function calcPoints(prediction, result) {
 
 // Register / Login
 app.post('/api/register', (req, res) => {
-  const { name } = req.body;
+  const { name, registerPassword } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: '请输入昵称' });
+  if (!registerPassword) return res.status(400).json({ error: '请输入注册密码' });
+  if (registerPassword !== REGISTER_PASSWORD) return res.status(400).json({ error: '注册密码错误，请联系群主获取' });
   const trimmed = name.trim().substring(0, 10);
   const db = readDB();
   let user = db.users.find(u => u.name === trimmed);
